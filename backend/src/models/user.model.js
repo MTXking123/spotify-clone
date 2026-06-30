@@ -56,13 +56,24 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    spotifyId: {
+      type: String,
+      default: null,
+    },
+
+    spotifyConnected: {
+      type: Boolean,
+      default: false,
+    },
+
+    spotifyImage: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-module.exports = mongoose.model(
-  "user",
-  userSchema
-);
+module.exports = mongoose.model("user", userSchema);

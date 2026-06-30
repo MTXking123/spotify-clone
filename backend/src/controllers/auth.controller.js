@@ -31,7 +31,12 @@ async function registerUser(req, res){
         role: user.role,     
     }, process.env.JWT_SECRET)
 
-    res.cookie("token", token)
+    res.cookie("token", token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+});
 
     res.status(201).json({
         message:"User Registered Successfully",
@@ -70,7 +75,12 @@ async function loginUser(req, res) {
         role: user.role
     },process.env.JWT_SECRET)
 
-    res.cookie("token",token)
+    res.cookie("token", token, {
+  httpOnly: true,
+  secure: false,
+  sameSite: "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000
+});
 
     res.status(200).json({
         message:"User logged in Successfully",
@@ -90,8 +100,19 @@ async function logoutUser(req, res){
     
 }
 
+async function getCurrentUser(req, res) {
+
+  const user = await userModel
+    .findById(req.user.id)
+    .select("-password");
+
+  res.json(user);
+}
 
 
 
 
-module.exports = {registerUser, loginUser, logoutUser}
+
+
+
+module.exports = {registerUser, loginUser, logoutUser, getCurrentUser}

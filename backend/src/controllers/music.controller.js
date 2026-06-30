@@ -2,13 +2,23 @@ const musicModel = require("../models/music.model");
 const uploadFile = require("../services/storage.services");
 const albumModel = require("../models/album.model");
 const jwt = require("jsonwebtoken");
+const userModel = require("../models/user.model");
 
 
 async function createMusic(req, res) {
+  if(req.user.role !== "artist"){
+    return res.status(403).json({
+        message:"Only artists can upload music"
+    });
+    
+}
   const { title } = req.body;
   const musicFile = req.files.music?.[0];
 
   const coverFile = req.files.cover?.[0];
+   console.log("REQUEST RECEIVED");
+  console.log(req.body);
+  console.log(req.files);
 
   console.log(musicFile);
   console.log(coverFile);
@@ -28,6 +38,8 @@ const coverResult = await uploadFile(
     artist: req.user.id
 })
 
+
+
   res.status(201).json({
     message: "Music created successfully",
     music: {
@@ -40,21 +52,24 @@ const coverResult = await uploadFile(
 }
 
 async function createAlbum(req, res) {
-  const album = await albumModel.create({
-    title,
-    artist: req.user.id,
-    music: musicIds,
-  });
+  try {
+    const { title, musics } = req.body;
 
-  res.status(201).json({
-    message: "Album created successfully",
-    album: {
-      id: album._id,
-      uri: album.uri,
-      title: album.title,
-      artist: album.artist,
-    },
-  });
+    const album = await albumModel.create({
+      title,
+      musics,
+      artist: req.user.id,
+    });
+
+    res.status(201).json({
+      message: "Album created successfully",
+      album,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 }
 
 async function getAllMusics(req, res) {
@@ -70,15 +85,21 @@ async function getAllMusics(req, res) {
 }
 
 async function getAllAlbums(req, res) {
-  const musics = await musicModel
-    .find()
-    .select("title artist")
-    .populate("artist", "username email");
+  try {
+    const albums =
+      await albumModel
+        .find()
+        .populate(
+          "artist",
+          "username"
+        );
 
-  res.status(200).json({
-    message: "Albums Fetched Successfully",
-    musics: musics,
-  });
+    res.status(200).json(albums);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 }
 
 async function getAlbumById(req, res) {
@@ -305,6 +326,102 @@ async function getArtists(req, res) {
   }
 }
 
+async function getMusicById(
+  req,
+  res
+) {
+  try {
+    const music =
+      await musicModel
+        .findById(
+          req.params.id
+        )
+        .populate(
+          "artist",
+          "username"
+        );
+
+    if (!music) {
+      return res.status(404).json({
+        message:
+          "Music not found",
+      });
+    }
+
+    res.json(music);
+  } catch (error) {
+    res.status(500).json({
+      message:
+        error.message,
+    });
+  }
+}
+
+async function getLikedSongs(
+  req,
+  res
+) {
+  try {
+    const user =
+      await userModel
+        .findById(
+          req.user._id
+        )
+        .populate({
+          path: "likedSongs",
+          populate: {
+            path: "artist",
+            select:
+              "username",
+          },
+        });
+
+    res.json(
+      user.likedSongs
+    );
+  } catch (error) {
+    res.status(500).json({
+      message:
+        error.message,
+    });
+  }
+}
+
+async function getMyArtistProfile(
+  req,
+  res
+) {
+  req.params.id = req.user.id;
+
+  return getArtistProfile(
+    req,
+    res
+  );
+}
+
+async function getSuggestions(req, res) {
+  try {
+    const query = req.params.query;
+
+    const songs = await musicModel
+      .find({
+        title: {
+          $regex: query,
+          $options: "i",
+        },
+      })
+      .limit(5)
+      .select("title coverImage");
+
+    res.json(songs);
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+}
+
 module.exports = {
   createMusic,
   createAlbum,
@@ -318,4 +435,8 @@ module.exports = {
   search,
   getRecentlyPlayed,
   getArtists,
+  getMusicById,
+  getLikedSongs,
+  getMyArtistProfile,
+  getSuggestions
 };

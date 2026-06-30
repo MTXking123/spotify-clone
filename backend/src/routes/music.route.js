@@ -38,13 +38,13 @@ router.get(
 
 router.post("/:id/like", authMiddleware.authUser, musicController.likeSong);
 
-router.post(
-  "/:id/play",
-  authMiddleware.authUser,
-  musicController.addRecentlyPlayed,
-);
-
 router.post("/:id/play", authMiddleware.authUser, musicController.playMusic);
+
+router.get(
+  "/artist/me",
+  authMiddleware.authArtist,
+  musicController.getMyArtistProfile,
+);
 
 router.get("/artist/:id", musicController.getArtistProfile);
 
@@ -56,6 +56,16 @@ router.get(
   musicController.getRecentlyPlayed,
 );
 
+router.get("/song/:id", authMiddleware.authUser, musicController.getMusicById);
+
 router.get("/artists", authMiddleware.authUser, musicController.getArtists);
+
+router.get(
+  "/suggest/:query",
+  authMiddleware.authUser,
+  musicController.getSuggestions
+);
+
+
 
 module.exports = router;
